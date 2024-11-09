@@ -5,7 +5,6 @@ import threading
 import tkinter as tk
 from tkinter import filedialog
 
-from mvector.infer_utils.viewer import PlotSpeaker
 from mvector.predict import MVectorPredictor
 from mvector.utils.utils import add_arguments, print_arguments
 
@@ -95,6 +94,7 @@ class SpeakerDiarizationGUI:
             threading.Thread(target=self.show_result(results), args=(results,)).start()
 
     def show_result(self, results):
+        from mvector.infer_utils.viewer import PlotSpeaker
         self.plot_speaker = PlotSpeaker(results, audio_path=args.audio_path)
         os.makedirs('output', exist_ok=True)
         self.plot_speaker.draw('output/speaker_diarization.png')

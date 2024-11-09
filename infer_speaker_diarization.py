@@ -2,8 +2,6 @@ import argparse
 import functools
 import os
 
-from mvector.infer_utils.viewer import PlotSpeaker
-
 from mvector.predict import MVectorPredictor
 from mvector.utils.utils import add_arguments, print_arguments
 
@@ -41,6 +39,7 @@ for result in results:
 
 # 绘制结果图像
 if args.show_plot:
+    from mvector.infer_utils.viewer import PlotSpeaker
     plot_speaker = PlotSpeaker(results, audio_path=args.audio_path)
     os.makedirs('output', exist_ok=True)
     plot_speaker.draw('output/speaker_diarization.png')
