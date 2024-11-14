@@ -104,7 +104,11 @@ class Res2Net(nn.Module):
         self.layer3 = self._make_layer(Bottle2neck, m_channels * 4, layers[2], stride=2)
         self.layer4 = self._make_layer(Bottle2neck, m_channels * 8, layers[3], stride=2)
 
-        cat_channels = m_channels * 8 * Bottle2neck.expansion * (input_size // base_width)
+        if input_size < 96:
+            cat_channels = m_channels * 8 * Bottle2neck.expansion * (input_size // self.base_width)
+        else:
+            cat_channels = m_channels * 8 * Bottle2neck.expansion * (
+                        input_size // self.base_width - int(math.sqrt(input_size / 64)))
         if pooling_type == "ASP":
             self.pooling = AttentiveStatisticsPooling(cat_channels, attention_channels=128)
             self.bn2 = nn.BatchNorm1d(cat_channels * 2)
