@@ -152,9 +152,13 @@ class MVectorTrainer(object):
         self.audio_featurizer = AudioFeaturizer(feature_method=self.configs.preprocess_conf.feature_method,
                                                 use_hf_model=self.configs.preprocess_conf.get('use_hf_model', False),
                                                 method_args=self.configs.preprocess_conf.get('method_args', {}))
-        for i, data_list in enumerate([self.configs.dataset_conf.train_list,
-                                       self.configs.dataset_conf.enroll_list,
-                                       self.configs.dataset_conf.trials_list]):
+        dataset_args = self.configs.dataset_conf.get('dataset', {})
+        dataset_args.max_duration = max_duration
+        data_loader_args = self.configs.dataset_conf.get('dataLoader', {})
+        data_loader_args.drop_last = False
+        for data_list in [self.configs.dataset_conf.train_list,
+                          self.configs.dataset_conf.enroll_list,
+                          self.configs.dataset_conf.trials_list]:
             # 获取测试数据
             dataset_args = self.configs.dataset_conf.get('dataset', {})
             dataset_args.max_duration = max_duration
@@ -162,16 +166,22 @@ class MVectorTrainer(object):
                                           audio_featurizer=self.audio_featurizer,
                                           mode='extract_feature',
                                           **dataset_args)
+            test_loader = DataLoader(dataset=test_dataset,
+                                     collate_fn=collate_fn,
+                                     shuffle=False,
+                                     **data_loader_args)
             save_data_list = data_list.replace('.txt', '_features.txt')
             with open(save_data_list, 'w', encoding='utf-8') as f:
-                for i in tqdm(range(len(test_dataset))):
-                    feature, label = test_dataset[i]
-                    feature = feature.numpy()
-                    label = int(label)
-                    save_path = os.path.join(save_dir, str(label), f'{int(time.time() * 1000)}.npy').replace('\\', '/')
-                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                    np.save(save_path, feature)
-                    f.write(f'{save_path}\t{label}\n')
+                for features, labels, input_lens in tqdm(test_loader):
+                    for i in range(len(features)):
+                        feature, label, input_len = features[i], labels[i], input_lens[i]
+                        feature = feature.numpy()[:input_len]
+                        label = int(label)
+                        save_path = os.path.join(save_dir, str(label),
+                                                 f'{int(time.time() * 1000)}.npy').replace('\\', '/')
+                        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                        np.save(save_path, feature)
+                        f.write(f'{save_path}\t{label}\n')
             logger.info(f'{data_list}列表中的数据已提取特征完成，新列表为：{save_data_list}')
 
     def __setup_model(self, input_size, is_train=False):
