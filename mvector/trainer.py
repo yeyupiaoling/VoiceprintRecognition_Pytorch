@@ -31,12 +31,13 @@ from mvector.utils.utils import dict_to_object, print_arguments
 
 
 class MVectorTrainer(object):
-    def __init__(self, configs, use_gpu=True, data_augment_configs=None):
+    def __init__(self, configs, use_gpu=True, data_augment_configs=None, overwrites=None):
         """ mvector集成工具类
 
         :param configs: 配置字典
         :param use_gpu: 是否使用GPU训练模型
         :param data_augment_configs: 数据增强配置字典或者其文件路径
+        :param overwrites: 覆盖配置文件中的参数，比如"train_conf.max_epoch=100"，多个用逗号隔开
         """
         if use_gpu:
             assert (torch.cuda.is_available()), 'GPU不可用'
@@ -49,8 +50,19 @@ class MVectorTrainer(object):
         if isinstance(configs, str):
             with open(configs, 'r', encoding='utf-8') as f:
                 configs = yaml.load(f.read(), Loader=yaml.FullLoader)
-            print_arguments(configs=configs)
         self.configs = dict_to_object(configs)
+        # 覆盖配置文件中的参数
+        if overwrites:
+            overwrites = overwrites.split(",")
+            for overwrite in overwrites:
+                keys, v = overwrite.strip().split("=")
+                attrs = keys.split('.')
+                current_level = self.configs
+                for attr in attrs[:-1]:
+                    current_level = getattr(current_level, attr)
+                setattr(current_level, attrs[-1], eval(v))
+        # 打印配置信息
+        print_arguments(configs=self.configs)
         self.model = None
         self.backbone = None
         self.optimizer = None
